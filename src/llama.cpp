@@ -340,6 +340,21 @@ static struct llama_model * llama_model_load_from_file_impl(
         if (model->devices.empty()) {
             model->devices.insert(model->devices.end(), igpus.begin(), igpus.end());
         }
+
+#if defined(_WIN32)
+        // On Windows with static linking (GGML_BACKEND_DL=OFF), the backend registry
+        // might be empty even though the CPU backend is statically linked. Add a fallback
+        // CPU device if no devices were found.
+        if (model->devices.empty() && ggml_backend_dev_count() == 0) {
+            LLAMA_LOG_WARN("%s: no devices found (static build on Windows). Adding CPU device fallback.\n", __func__);
+            ggml_backend_dev_t cpu_dev = ggml_backend_init_by_type(GGML_BACKEND_DEVICE_TYPE_CPU, nullptr);
+            if (cpu_dev != nullptr) {
+                model->devices.push_back({false, cpu_dev});
+            } else {
+                LLAMA_LOG_WARN("%s: failed to initialize CPU device via backend_init_by_type (static build on Windows).\n", __func__);
+            }
+        }
+#endif
     }
 
     // if using single GPU mode, remove all except the main GPU
