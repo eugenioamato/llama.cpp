@@ -198,12 +198,7 @@ static struct llama_model * llama_model_load_from_file_impl(
     // is statically linked but not registered in the backend registry.
     // Skip the backend registry check and log a warning instead of failing.
     if (!params.vocab_only && ggml_backend_reg_count() == 0) {
-#if defined(_WIN32)
         LLAMA_LOG_WARN("%s: no backends are loaded (static build on Windows). Assuming CPU backend is available via static linking.\n", __func__);
-#else
-        LLAMA_LOG_ERROR("%s: no backends are loaded. hint: use ggml_backend_load() or ggml_backend_load_all() to load a backend before calling this function\n", __func__);
-        return nullptr;
-#endif
     }
 
     unsigned cur_percentage = 0;
