@@ -242,9 +242,17 @@ llama_context::llama_context(
         // add CPU backend
         backend_cpu = ggml_backend_init_by_type(GGML_BACKEND_DEVICE_TYPE_CPU, nullptr);
         if (backend_cpu == nullptr) {
+#if defined(_WIN32)
+            // On Windows with static linking (GGML_BACKEND_DL=OFF), the CPU backend
+            // might not be available via backend_init_by_type. Log a warning and continue
+            // assuming the CPU backend is available via static linking.
+            LLAMA_LOG_WARN("%s: failed to initialize CPU backend via backend_init_by_type (static build on Windows). Continuing with CPU backend assumption.\n", __func__);
+#else
             throw std::runtime_error("failed to initialize CPU backend");
+#endif
+        } else {
+            backends.emplace_back(backend_cpu);
         }
-        backends.emplace_back(backend_cpu);
 
         // create a list of the set_n_threads functions in the backends
         for (auto & backend : backends) {
